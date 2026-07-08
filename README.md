@@ -44,7 +44,8 @@ matching.
 
 ## Architecture
 
-![Architecture Diagram](architecture.png)
+![Uploading image.png…]()
+
 
 ---
 
