@@ -399,4 +399,5 @@ for chat in reversed(st.session_state.chat_history):
 
     with st.expander("📚 View retrieved context"):
         st.text(chat["context"] or "No context found.")
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)#   t e s t  
+ 
