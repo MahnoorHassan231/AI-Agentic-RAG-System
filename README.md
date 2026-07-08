@@ -13,8 +13,183 @@
 
 ---
 
+# 📄 AI Agentic RAG System
+
+<p align="center">
+
+![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)
+![Google Gemini](https://img.shields.io/badge/Google-Gemini-4285F4?style=for-the-badge&logo=google&logoColor=white)
+![ChromaDB](https://img.shields.io/badge/ChromaDB-VectorDB-success?style=for-the-badge)
+![Pinecone](https://img.shields.io/badge/Pinecone-Cloud-blueviolet?style=for-the-badge)
+![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)
+
+</p>
+
+---
+
 # AI Agentic RAG System
 
+An intelligent **Retrieval-Augmented Generation (RAG)** application powered by **Google Gemini**, **Sentence Transformers**, and **Vector Databases (ChromaDB/Pinecone)**. The system enables users to upload PDF documents, perform semantic search, and receive accurate, context-aware responses through specialized AI agents.
+
+---
+
+# 🏗️ System Architecture
+
+<p align="center">
+<img src="assets/architecture.png" width="100%">
+</p>
+
+---
+
+# ✨ Features
+
+- 📄 Upload and process PDF documents
+- 🔍 Semantic document search
+- 🤖 Intelligent AI Agent Routing
+- 🧠 Google Gemini powered responses
+- 🏢 Multi-company document management
+- ☁️ ChromaDB (Local Storage)
+- ☁️ Pinecone (Cloud Persistent Storage)
+- 📚 Source Citations
+- ⚡ Multi-Agent Comparison
+- 🎨 Interactive Streamlit Dashboard
+
+---
+
+# 🤖 AI Agents
+
+## 🛠️ Automation Agent
+
+Generates:
+
+- Python code
+- Workflows
+- Emails
+- Step-by-step plans
+
+---
+
+## 🔍 Extraction Agent
+
+Extracts:
+
+- Dates
+- Numbers
+- Email addresses
+- Phone numbers
+- Invoice details
+- Important facts
+
+---
+
+## 📊 Analytics Agent
+
+Provides:
+
+- Trend Analysis
+- Data Insights
+- Comparisons
+- Summaries
+
+---
+
+## 💬 General RAG
+
+Answers general document questions using retrieved context and Google Gemini.
+
+---
+
+# 🔄 Workflow
+
+```text
+Upload PDF
+      │
+      ▼
+Document Loader
+      │
+      ▼
+Text Chunking
+      │
+      ▼
+Sentence Transformer
+      │
+      ▼
+Vector Database
+      │
+      ▼
+Semantic Retrieval
+      │
+      ▼
+Retrieved Context
+      │
+      ▼
+Agent Router
+      │
+ ┌────┼───────────────┐
+ ▼    ▼               ▼
+Automation    Extraction   Analytics
+        │
+        ▼
+Google Gemini
+        │
+        ▼
+Final Answer + Citations
+```
+
+---
+
+# 📂 Project Structure
+
+```text
+AI-Agentic-RAG/
+│
+├── assets/
+│   └── architecture.png
+│
+├── data/
+│   ├── uploads/
+│   └── chroma_db/
+│
+├── agents.py
+├── config.py
+├── document_loader.py
+├── gemini_client.py
+├── main.py
+├── rag_engine.py
+├── vector_store.py
+├── requirements.txt
+├── .gitignore
+├── README.md
+└── LICENSE
+```
+
+---
+
+# ⚙️ Tech Stack
+
+| Technology | Purpose |
+|------------|----------|
+| Python | Backend |
+| Streamlit | Web UI |
+| Google Gemini | Large Language Model |
+| Sentence Transformers | Embeddings |
+| ChromaDB | Local Vector Database |
+| Pinecone | Cloud Vector Database |
+| PyPDF | PDF Processing |
+| python-dotenv | Environment Variables |
+
+---
+
+# 🚀 Installation
+
+Clone the repository
+
+```bash
+git clone https://github.com/yourusername/AI-Agentic-RAG.git
+
+cd AI-Agentic-RAG
+```
 An intelligent **Retrieval-Augmented Generation (RAG)** application powered by **Google Gemini**, **Sentence Transformers**, and **Vector Databases (ChromaDB/Pinecone)**. The system enables users to upload PDF documents, perform semantic search, and receive accurate, context-aware responses through specialized AI agents.
 
 ---
@@ -181,7 +356,27 @@ Install dependencies
 ```bash
 pip install -r requirements.txt
 ```
+Install dependencies
 
+```bash
+pip install -r requirements.txt
+```
+
+Create a `.env` file
+
+```env
+GEMINI_API_KEY=YOUR_GEMINI_API_KEY
+
+PINECONE_API_KEY=YOUR_PINECONE_API_KEY
+
+PINECONE_INDEX_NAME=ai-rag-project
+```
+
+Run the application
+
+```bash
+streamlit run main.py
+```
 Create a `.env` file
 
 ```env
@@ -229,6 +424,42 @@ Users can search:
 
 - Across all companies
 - Within a single company
+
+---
+
+# 📸 Screenshots
+
+## Home Page
+
+> Add screenshot here
+
+```
+screenshots/home.png
+```
+
+## Upload Documents
+
+> Add screenshot here
+
+```
+screenshots/upload.png
+```
+
+## Ask Questions
+
+> Add screenshot here
+
+```
+screenshots/chat.png
+```
+
+## Multi-Agent Comparison
+
+> Add screenshot here
+
+```
+screenshots/compare.png
+```
 
 ---
 

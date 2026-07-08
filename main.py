@@ -188,24 +188,48 @@ engine = st.session_state.engine
 # ---------------- Sidebar: Upload + Settings ----------------
 with st.sidebar:
     st.header("📤 Upload Documents")
+
+    company_name = st.text_input(
+        "Company / Client name",
+        placeholder="e.g. Acme Corp",
+        help="Tag this upload with a company name so you can later filter "
+             "questions to only search within this company's documents.",
+    )
+
     uploaded_files = st.file_uploader(
         "Upload PDF files", type=["pdf"], accept_multiple_files=True
     )
 
     if uploaded_files and st.button("Process PDFs"):
-        with st.spinner("Processing PDFs..."):
-            for file in uploaded_files:
-                save_path = os.path.join(config.UPLOAD_DIR, file.name)
-                with open(save_path, "wb") as f:
-                    f.write(file.getbuffer())
-                num_chunks = engine.ingest_pdf(save_path)
-                st.success(f"{file.name} -> {num_chunks} chunks added")
+        if not company_name.strip():
+            st.error("Please enter a company name before processing.")
+        else:
+            with st.spinner("Processing PDFs..."):
+                for file in uploaded_files:
+                    save_path = os.path.join(config.UPLOAD_DIR, file.name)
+                    with open(save_path, "wb") as f:
+                        f.write(file.getbuffer())
+                    num_chunks = engine.ingest_pdf(save_path, company=company_name.strip())
+                    st.success(f"{file.name} -> {num_chunks} chunks added under '{company_name.strip()}'")
 
     st.divider()
     if engine.vector_store.has_documents():
         st.info("✅ Documents loaded. You can ask questions now.")
     else:
         st.warning("⚠️ No documents uploaded yet.")
+
+    st.divider()
+    st.header("🏢 Filter by Company")
+    all_companies = engine.get_all_companies()
+    company_options = ["All Companies"] + all_companies
+    selected_company = st.selectbox(
+        "Only answer using documents from:",
+        options=company_options,
+        help="Choose a specific company to restrict answers to only that "
+             "company's uploaded documents. Useful when multiple companies' "
+             "PDFs are uploaded at the same time.",
+    )
+    active_company = None if selected_company == "All Companies" else selected_company
 
     st.divider()
     st.header("⚙️ Answer Mode")
@@ -225,7 +249,7 @@ with st.sidebar:
     st.divider()
     st.caption(f"🧠 LLM: Google {config.GEMINI_MODEL}")
     st.caption(f"🔎 Embeddings: {config.EMBEDDING_MODEL}")
-    st.caption("🗄️ Vector DB: ChromaDB")
+    st.caption(f"🗄️ Storage: {engine.vector_store.backend_name}")
 
     st.divider()
     if st.button("🗑️ Clear Chat History", key="clear_chat_btn"):
@@ -245,7 +269,7 @@ with col1:
 if ask_clicked and question.strip():
     with st.spinner("Generating answer(s)..."):
         if answer_mode == "Single agent (fastest)":
-            result = engine.ask(question)
+            result = engine.ask(question, company=active_company)
             st.session_state.chat_history.append(
                 {
                     "mode": "single",
@@ -253,19 +277,21 @@ if ask_clicked and question.strip():
                     "answer": result["answer"],
                     "agent": result["agent_used"],
                     "context": result["context_used"],
-                    "sources": result.get("sources", []),
+                    "citations": result.get("citations", []),
+                    "company": selected_company,
                 }
             )
         else:
             run_all = answer_mode == "Compare all agents"
-            result = engine.ask_multi(question, run_all=run_all)
+            result = engine.ask_multi(question, run_all=run_all, company=active_company)
             st.session_state.chat_history.append(
                 {
                     "mode": "multi",
                     "question": question,
                     "answers": result["answers"],
                     "context": result["context_used"],
-                    "sources": result.get("sources", []),
+                    "citations": result.get("citations", []),
+                    "company": selected_company,
                 }
             )
 
@@ -275,6 +301,12 @@ st.markdown("<br>", unsafe_allow_html=True)
 for chat in reversed(st.session_state.chat_history):
     st.markdown('<div class="qa-card">', unsafe_allow_html=True)
     st.markdown(f'<div class="qa-question">🧑 <span>Question:</span> {chat["question"]}</div>', unsafe_allow_html=True)
+    if chat.get("company"):
+        st.markdown(
+            f'<div style="color:#6b7488;font-size:0.78rem;margin:-4px 0 10px 4px;">'
+            f'🏢 Filtered to: {chat["company"]}</div>',
+            unsafe_allow_html=True,
+        )
 
     if chat["mode"] == "single":
         agent_label = chat["agent"].capitalize() if chat["agent"] != "general" else "General"
@@ -300,12 +332,15 @@ for chat in reversed(st.session_state.chat_history):
 
     st.markdown('</div>', unsafe_allow_html=True)
 
-    if chat.get("sources"):
-        sources_str = " • ".join(chat["sources"])
+    if chat.get("citations"):
+        chips = "".join(
+            f'<span style="background:#1a1f2e;border:1px solid #2e3652;border-radius:20px;'
+            f'padding:5px 12px;margin:3px 6px 0 0;display:inline-block;font-size:0.82rem;color:#c7cede;">'
+            f'🏢 <b style="color:#d4a656;">{c["company"]}</b> → 📄 {c["source"]}</span>'
+            for c in chat["citations"]
+        )
         st.markdown(
-            f'<div style="background:#1a1f2e;border:1px solid #2e3652;border-radius:8px;'
-            f'padding:8px 14px;margin-top:8px;color:#c7cede;font-size:0.85rem;display:inline-block;">'
-            f'📎 <b style="color:#d4a656;">Source:</b> {sources_str}</div>',
+            f'<div style="margin-top:8px;">{chips}</div>',
             unsafe_allow_html=True,
         )
 

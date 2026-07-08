@@ -1,12 +1,12 @@
 """
 document_loader.py
 -------------------
-Iska kaam sirf itna hai:
-1. PDF kholna
-2. Text nikalna
-3. Text ko chunks mein todna
+Responsible for:
+1. Opening a PDF
+2. Extracting its text
+3. Splitting that text into chunks
 
-Ye AI nahi hai. Sirf "reader" hai.
+This is not AI — just a reader/splitter.
 """
 
 from pypdf import PdfReader
@@ -14,7 +14,7 @@ import config
 
 
 def load_pdf_text(pdf_path: str) -> str:
-    """PDF file se poora text nikal kar ek string mein return karta hai."""
+    """Extracts all text from a PDF file and returns it as a single string."""
     reader = PdfReader(pdf_path)
     full_text = ""
     for page in reader.pages:
@@ -25,8 +25,8 @@ def load_pdf_text(pdf_path: str) -> str:
 
 def chunk_text(text: str, chunk_size: int = None, overlap: int = None) -> list[str]:
     """
-    Bade text ko chhote chunks mein todta hai.
-    Overlap isliye rakhte hain taake do chunks ke beech context na toote.
+    Splits long text into smaller overlapping chunks.
+    Overlap prevents context from being lost between adjacent chunks.
     """
     chunk_size = chunk_size or config.CHUNK_SIZE
     overlap = overlap or config.CHUNK_OVERLAP
@@ -46,6 +46,6 @@ def chunk_text(text: str, chunk_size: int = None, overlap: int = None) -> list[s
 
 
 def load_and_chunk_pdf(pdf_path: str) -> list[str]:
-    """PDF se text nikal kar seedha chunks return kar deta hai. Sabse zyada use hone wala function."""
+    """Extracts text from a PDF and returns it as chunks. Main entry point."""
     text = load_pdf_text(pdf_path)
     return chunk_text(text)
