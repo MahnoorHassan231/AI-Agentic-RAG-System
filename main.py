@@ -1,403 +1,565 @@
 """
 main.py
 -------
-Streamlit UI layer. Handles the text box, upload button, and displaying
-answers. All the real logic lives in RAGEngine (rag_engine.py).
+Professional UI for AI Agentic RAG System.
+Features: Bottom chat input, chat bubbles, agent badges, stats sidebar.
 """
 
 import os
-from collections import defaultdict  # <-- Grouping ke liye
+import time
+from collections import defaultdict
 import streamlit as st
 import config
 from rag_engine import RAGEngine
 
-st.set_page_config(page_title="AI Agentic RAG System", page_icon="📄", layout="wide")
+st.set_page_config(
+    page_title="AI Agentic RAG System",
+    page_icon="🤖",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
 
-# ---------------- Custom Styling ----------------
-AGENT_COLORS = {
-    "General": "#d4a656",
-    "Automation": "#5b8def",
-    "Extraction": "#4cc9a0",
-    "Analytics": "#c084fc",
-}
-
+# ---------------- Custom CSS (Professional Dark Theme) ----------------
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap');
 
+/* Global Reset & Base */
 html, body, [class*="css"] {
     font-family: 'Inter', sans-serif;
+    background: #0d1117;
 }
 
 .stApp {
-    background: radial-gradient(circle at 15% 0%, #1c2333 0%, #12151f 55%, #0d0f16 100%);
+    background: #0d1117;
 }
 
-/* Title */
-h1 {
-    font-family: 'Space Grotesk', sans-serif !important;
-    font-weight: 700 !important;
-    letter-spacing: -0.5px;
-    background: linear-gradient(90deg, #f0e4c8 0%, #d4a656 60%, #b8863f 100%);
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+}
+::-webkit-scrollbar-track {
+    background: #161b22;
+}
+::-webkit-scrollbar-thumb {
+    background: #30363d;
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #d4a656;
+}
+
+/* ---- HEADER ---- */
+.main-header {
+    background: linear-gradient(135deg, #161b22 0%, #0d1117 100%);
+    border-bottom: 1px solid #21262d;
+    padding: 1rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+.main-header h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 1.8rem;
+    background: linear-gradient(90deg, #f0e4c8, #d4a656, #b8863f);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    padding-bottom: 4px;
+    margin: 0;
+}
+.main-header .status-badge {
+    background: #1c2333;
+    border: 1px solid #30363d;
+    border-radius: 20px;
+    padding: 4px 16px;
+    font-size: 0.75rem;
+    color: #8b949e;
+}
+.status-badge .dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #2ea043;
+    margin-right: 8px;
+    animation: pulse 2s infinite;
+}
+@keyframes pulse {
+    0% { opacity: 0.6; }
+    50% { opacity: 1; }
+    100% { opacity: 0.6; }
 }
 
-/* Caption under title */
-[data-testid="stCaptionContainer"] {
-    color: #9aa3b8 !important;
-    font-size: 0.95rem !important;
-}
-
-/* Sidebar */
+/* ---- SIDEBAR ---- */
 [data-testid="stSidebar"] {
-    background: #161a26;
-    border-right: 1px solid #2a3145;
+    background: #161b22 !important;
+    border-right: 1px solid #21262d !important;
+    padding-top: 1rem;
 }
-[data-testid="stSidebar"] h2 {
-    font-family: 'Space Grotesk', sans-serif !important;
-    color: #f0e4c8 !important;
-    font-size: 1.15rem !important;
+[data-testid="stSidebar"] h2, 
+[data-testid="stSidebar"] .stMarkdown h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    color: #f0e4c8;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+[data-testid="stSidebar"] hr {
+    border-color: #21262d;
 }
 
-/* Sidebar caption rows (LLM/Embeddings/Vector DB info) */
-[data-testid="stSidebar"] [data-testid="stCaptionContainer"] {
-    color: #7d879c !important;
+/* Sidebar Stats Card */
+.stats-card {
+    background: #0d1117;
+    border: 1px solid #21262d;
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+}
+.stats-card .stat-item {
+    text-align: center;
+}
+.stats-card .stat-number {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #d4a656;
+}
+.stats-card .stat-label {
+    font-size: 0.65rem;
+    color: #8b949e;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
 }
 
-/* File uploader box */
+/* Upload box */
 [data-testid="stFileUploaderDropzone"] {
-    background: #1d2333 !important;
-    border: 1.5px dashed #3a4260 !important;
+    background: #0d1117 !important;
+    border: 1.5px dashed #30363d !important;
     border-radius: 12px !important;
 }
+[data-testid="stFileUploaderDropzone"]:hover {
+    border-color: #d4a656 !important;
+}
 
-/* Buttons */
+/* Buttons in sidebar */
 .stButton > button {
     background: linear-gradient(135deg, #d4a656 0%, #b8863f 100%) !important;
-    color: #14161f !important;
+    color: #0d1117 !important;
     font-weight: 600 !important;
     border: none !important;
     border-radius: 8px !important;
-    padding: 0.5rem 1.4rem !important;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    padding: 0.4rem 1.2rem !important;
+    transition: all 0.2s ease !important;
 }
 .stButton > button:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 14px rgba(212, 166, 86, 0.35);
+    box-shadow: 0 4px 16px rgba(212, 166, 86, 0.3);
 }
 
-/* Text input */
-.stTextInput input {
-    background: #1a1f2e !important;
-    border: 1px solid #2e3652 !important;
-    border-radius: 10px !important;
-    color: #e8e6e1 !important;
-    padding: 0.7rem 1rem !important;
+/* Delete buttons (trash) - keep them subtle */
+.stButton > button[kind="secondary"] {
+    background: transparent !important;
+    color: #8b949e !important;
+    padding: 0 8px !important;
+    box-shadow: none !important;
 }
-.stTextInput input:focus {
-    border-color: #d4a656 !important;
-    box-shadow: 0 0 0 1px #d4a656 !important;
+.stButton > button[kind="secondary"]:hover {
+    color: #f85149 !important;
 }
 
-/* Radio (answer mode) */
-[data-testid="stSidebar"] .stRadio label {
-    color: #c7cede !important;
+/* ---- CHAT AREA ---- */
+.chat-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 1rem 1rem 1rem;
 }
 
-/* Info/warning/success boxes */
-[data-testid="stAlert"] {
-    border-radius: 10px !important;
+/* User Message */
+.user-message {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 1.2rem;
+    animation: fadeIn 0.3s ease;
+}
+.user-bubble {
+    background: linear-gradient(135deg, #1c2333, #2d3548);
+    color: #e6edf3;
+    padding: 12px 18px;
+    border-radius: 18px 18px 4px 18px;
+    max-width: 75%;
+    border: 1px solid #30363d;
+    font-size: 0.95rem;
+    line-height: 1.5;
 }
 
-/* Tabs (multi-agent answers) */
-.stTabs [data-baseweb="tab-list"] {
-    gap: 4px;
+/* AI Message */
+.ai-message {
+    display: flex;
+    justify-content: flex-start;
+    margin-bottom: 1.2rem;
+    animation: fadeIn 0.5s ease;
 }
-.stTabs [data-baseweb="tab"] {
-    background: #1a1f2e;
-    border-radius: 8px 8px 0 0;
-    padding: 8px 18px;
-    color: #9aa3b8;
+.ai-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #d4a656, #b8863f);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    margin-right: 12px;
+    flex-shrink: 0;
 }
-.stTabs [aria-selected="true"] {
-    background: #262d42 !important;
-    color: #f0e4c8 !important;
+.ai-bubble {
+    background: #161b22;
+    color: #e6edf3;
+    padding: 14px 20px;
+    border-radius: 18px 18px 18px 4px;
+    max-width: 80%;
+    border: 1px solid #21262d;
+    font-size: 0.95rem;
+    line-height: 1.6;
 }
-
-/* Divider */
-hr {
-    border-color: #232a3d !important;
-}
-
-/* Custom Q&A card */
-.qa-card {
-    background: #171c29;
-    border: 1px solid #262d42;
-    border-left: 3px solid #d4a656;
-    border-radius: 12px;
-    padding: 18px 22px;
-    margin-bottom: 6px;
-}
-.qa-question {
-    color: #f0e4c8;
-    font-weight: 600;
-    font-size: 1.02rem;
-    margin-bottom: 10px;
-}
-.qa-question span {
-    color: #d4a656;
-}
-.agent-answer {
-    background: #1a1f2e;
-    border-radius: 8px;
-    padding: 14px 16px;
-    color: #d8dcea;
-    line-height: 1.55;
-}
-.agent-badge {
+.ai-bubble .agent-badge {
     display: inline-block;
-    font-size: 0.72rem;
+    font-size: 0.6rem;
     font-weight: 600;
-    letter-spacing: 0.4px;
+    letter-spacing: 0.3px;
     text-transform: uppercase;
-    padding: 3px 10px;
+    padding: 2px 12px;
     border-radius: 20px;
     margin-bottom: 8px;
+}
+
+/* Agent Color Themes */
+.badge-general { background: #d4a65622; color: #d4a656; border: 1px solid #d4a65644; }
+.badge-automation { background: #5b8def22; color: #5b8def; border: 1px solid #5b8def44; }
+.badge-extraction { background: #4cc9a022; color: #4cc9a0; border: 1px solid #4cc9a044; }
+.badge-analytics { background: #c084fc22; color: #c084fc; border: 1px solid #c084fc44; }
+
+/* Citations chips */
+.citation-chip {
+    background: #0d1117;
+    border: 1px solid #21262d;
+    border-radius: 16px;
+    padding: 4px 14px;
+    display: inline-block;
+    font-size: 0.7rem;
+    color: #8b949e;
+    margin-right: 6px;
+    margin-top: 4px;
+}
+.citation-chip strong {
+    color: #d4a656;
+}
+
+/* Context expander */
+[data-testid="stExpander"] {
+    background: #0d1117;
+    border: 1px solid #21262d;
+    border-radius: 10px;
+}
+[data-testid="stExpander"] summary {
+    color: #8b949e;
+    font-size: 0.8rem;
+}
+
+/* Welcome message */
+.welcome-box {
+    text-align: center;
+    padding: 4rem 1rem;
+}
+.welcome-box h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    color: #f0e4c8;
+    font-size: 2rem;
+}
+.welcome-box p {
+    color: #8b949e;
+    font-size: 1.1rem;
+}
+
+/* Input box - bottom fixed */
+.chat-input-container {
+    background: #161b22;
+    border-top: 1px solid #21262d;
+    padding: 1rem 2rem;
+    position: sticky;
+    bottom: 0;
+    z-index: 100;
+}
+.chat-input-container .stTextInput input {
+    background: #0d1117 !important;
+    border: 1px solid #30363d !important;
+    border-radius: 12px !important;
+    color: #e6edf3 !important;
+    padding: 0.8rem 1.2rem !important;
+    font-size: 1rem !important;
+}
+.chat-input-container .stTextInput input:focus {
+    border-color: #d4a656 !important;
+    box-shadow: 0 0 0 2px #d4a65644 !important;
+}
+.chat-input-container .stButton button {
+    background: linear-gradient(135deg, #d4a656 0%, #b8863f 100%) !important;
+    border-radius: 12px !important;
+    padding: 0.6rem 2rem !important;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsive tweaks */
+@media (max-width: 768px) {
+    .ai-bubble, .user-bubble { max-width: 90%; }
+    .main-header h1 { font-size: 1.3rem; }
 }
 </style>
 """, unsafe_allow_html=True)
 
-# ---------------- Header ----------------
-st.title("📄 AI Agentic RAG System")
-st.caption(
-    f"Upload PDFs and ask questions about them — powered by **Google {config.GEMINI_MODEL}** "
-    "+ RAG + AI Agents"
-)
-
-# Initialize RAGEngine only once (reused for the whole session)
+# ---------------- SESSION STATE INIT ----------------
 if "engine" not in st.session_state:
     try:
         st.session_state.engine = RAGEngine()
     except ValueError as e:
-        st.error(str(e))
+        st.error(f"❌ {str(e)}")
         st.stop()
 
-engine = st.session_state.engine
-
-# ---------------- Sidebar: Upload + Settings ----------------
-with st.sidebar:
-    st.header("📤 Upload Documents")
-
-    company_name = st.text_input(
-        "Company / Client name",
-        placeholder="e.g. Acme Corp",
-        help="Tag this upload with a company name so you can later filter "
-             "questions to only search within this company's documents.",
-    )
-
-    uploaded_files = st.file_uploader(
-        "Upload PDF files", type=["pdf"], accept_multiple_files=True
-    )
-
-    if uploaded_files and st.button("Process PDFs"):
-        if not company_name.strip():
-            st.error("Please enter a company name before processing.")
-        else:
-            with st.spinner("Processing PDFs..."):
-                for file in uploaded_files:
-                    save_path = os.path.join(config.UPLOAD_DIR, file.name)
-                    with open(save_path, "wb") as f:
-                        f.write(file.getbuffer())
-                    num_chunks = engine.ingest_pdf(save_path, company=company_name.strip())
-                    st.success(f"{file.name} -> {num_chunks} chunks added under '{company_name.strip()}'")
-
-    # ==============================================================
-    # 🔥 UPDATED FEATURE: Grouped Document List + Confirmation Popups
-    # ==============================================================
-    st.divider()
-    st.header("📂 Uploaded Documents")
-
-    # Get list of documents from the engine
-    docs = engine.get_documents()
-
-    if docs:
-        # Group documents by Company
-        grouped_docs = defaultdict(list)
-        for doc in docs:
-            grouped_docs[doc["company"]].append(doc)
-
-        total = len(docs)
-        st.caption(f"Total: {total} document(s)")
-
-        # Show documents grouped by company
-        for company, company_docs in grouped_docs.items():
-            st.markdown(f"**🏢 {company}**")  # Company heading
-            for doc in company_docs:
-                col1, col2 = st.columns([4, 1])
-                with col1:
-                    st.write(f"📄 {doc['source']}")
-                with col2:
-                    # 🗑 Delete button with confirmation popover
-                    with st.popover("🗑", use_container_width=True):
-                        st.caption(f"Delete '{doc['source']}'?")
-                        if st.button(
-                            "✅ Yes, Delete",
-                            key=f"confirm_del_{doc['company']}_{doc['source']}",
-                        ):
-                            engine.delete_document(doc["company"], doc["source"])
-                            st.success(f"Deleted: {doc['source']}")
-                            st.rerun()
-
-        # "Delete All" button with confirmation popover
-        st.divider()
-        with st.popover("🗑️ Delete All Documents", use_container_width=True):
-            st.caption("⚠️ Permanently delete ALL uploaded documents?")
-            if st.button("✅ Yes, Delete All", key="confirm_del_all"):
-                for doc in docs:
-                    engine.delete_document(doc["company"], doc["source"])
-                st.success("All documents deleted!")
-                st.rerun()
-
-    else:
-        st.info("No documents uploaded yet.")
-
-    # ==============================================================
-
-    st.divider()
-    if engine.vector_store.has_documents():
-        st.info("✅ Documents loaded. You can ask questions now.")
-    else:
-        st.warning("⚠️ No documents uploaded yet.")
-
-    st.divider()
-    st.header("🏢 Filter by Company")
-    all_companies = engine.get_all_companies()
-    company_options = ["All Companies"] + all_companies
-    selected_company = st.selectbox(
-        "Only answer using documents from:",
-        options=company_options,
-        help="Choose a specific company to restrict answers to only that "
-             "company's uploaded documents. Useful when multiple companies' "
-             "PDFs are uploaded at the same time.",
-    )
-    active_company = None if selected_company == "All Companies" else selected_company
-
-    st.divider()
-    st.header("⚙️ Answer Mode")
-    answer_mode = st.radio(
-        "How should agents answer?",
-        options=["Single agent (fastest)", "Matching agents", "Compare all agents"],
-        index=0,
-        help=(
-            "Single agent: Gemini itself reads your question and picks the ONE best-fit "
-            "agent (smarter than keyword matching).\n\n"
-            "Matching agents: every agent whose keywords match your question answers.\n\n"
-            "Compare all agents: Automation, Extraction, Analytics and General RAG "
-            "all answer the same question, so you can compare them."
-        ),
-    )
-
-    st.divider()
-    st.caption(f"🧠 LLM: Google {config.GEMINI_MODEL}")
-    st.caption(f"🔎 Embeddings: {config.EMBEDDING_MODEL}")
-    st.caption(f"🗄️ Storage: {engine.vector_store.backend_name}")
-
-    st.divider()
-    if st.button("🗑️ Clear Chat History", key="clear_chat_btn"):
-        st.session_state.chat_history = []
-        st.rerun()
-
-# ---------------- Main: Chat ----------------
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
-question = st.text_input("Type your question:", placeholder="e.g. How many annual leaves do employees get?")
+engine = st.session_state.engine
 
-col1, col2 = st.columns([1, 5])
-with col1:
-    ask_clicked = st.button("Ask", type="primary")
+# ---------------- HEADER (Custom HTML) ----------------
+st.markdown(f"""
+<div class="main-header">
+    <h1>🤖 AI Agentic RAG</h1>
+    <div class="status-badge">
+        <span class="dot"></span>
+        {config.GEMINI_MODEL} · {engine.vector_store.backend_name}
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
-if ask_clicked and question.strip():
-    with st.spinner("Generating answer(s)..."):
-        if answer_mode == "Single agent (fastest)":
-            result = engine.ask(question, company=active_company)
-            st.session_state.chat_history.append(
-                {
-                    "mode": "single",
-                    "question": question,
-                    "answer": result["answer"],
-                    "agent": result["agent_used"],
-                    "context": result["context_used"],
-                    "citations": result.get("citations", []),
-                    "company": selected_company,
-                }
-            )
-        else:
-            run_all = answer_mode == "Compare all agents"
-            result = engine.ask_multi(question, run_all=run_all, company=active_company)
-            st.session_state.chat_history.append(
-                {
-                    "mode": "multi",
-                    "question": question,
-                    "answers": result["answers"],
-                    "context": result["context_used"],
-                    "citations": result.get("citations", []),
-                    "company": selected_company,
-                }
-            )
+# ---------------- SIDEBAR ----------------
+with st.sidebar:
+    # --- Stats ---
+    docs = engine.get_documents() if hasattr(engine, 'get_documents') else []
+    total_docs = len(docs)
+    companies = engine.get_all_companies()
 
-st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown(f"""
+    <div class="stats-card">
+        <div class="stat-item">
+            <div class="stat-number">{total_docs}</div>
+            <div class="stat-label">Documents</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-number">{len(companies)}</div>
+            <div class="stat-label">Companies</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-number">{len(st.session_state.chat_history)}</div>
+            <div class="stat-label">Messages</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
-# ---------------- Chat History Display ----------------
-for chat in reversed(st.session_state.chat_history):
-    st.markdown('<div class="qa-card">', unsafe_allow_html=True)
-    st.markdown(f'<div class="qa-question">🧑 <span>Question:</span> {chat["question"]}</div>', unsafe_allow_html=True)
-    if chat.get("company"):
-        st.markdown(
-            f'<div style="color:#6b7488;font-size:0.78rem;margin:-4px 0 10px 4px;">'
-            f'🏢 Filtered to: {chat["company"]}</div>',
-            unsafe_allow_html=True,
+    # --- Upload Section ---
+    with st.expander("📤 Upload Documents", expanded=True):
+        company_name = st.text_input(
+            "Company / Client",
+            placeholder="e.g. Acme Corp",
+            label_visibility="collapsed",
         )
-
-    if chat["mode"] == "single":
-        agent_label = chat["agent"].capitalize() if chat["agent"] != "general" else "General"
-        color = AGENT_COLORS.get(agent_label, "#d4a656")
-        st.markdown(
-            f'<span class="agent-badge" style="background:{color}22;color:{color};">🤖 {agent_label} agent</span>'
-            f'<span style="color:#6b7488;font-size:0.75rem;margin-left:8px;">'
-            f'🧭 chosen by Gemini AI routing (not keyword matching)</span>'
-            f'<div class="agent-answer">{chat["answer"]}</div>',
-            unsafe_allow_html=True,
+        uploaded_files = st.file_uploader(
+            "Choose PDF files", type=["pdf"], accept_multiple_files=True, label_visibility="collapsed"
         )
+        if uploaded_files and st.button("🚀 Process PDFs", use_container_width=True):
+            if not company_name.strip():
+                st.error("Please enter a company name.")
+            else:
+                with st.spinner("Processing..."):
+                    for file in uploaded_files:
+                        save_path = os.path.join(config.UPLOAD_DIR, file.name)
+                        with open(save_path, "wb") as f:
+                            f.write(file.getbuffer())
+                        num = engine.ingest_pdf(save_path, company=company_name.strip())
+                        st.success(f"✅ {file.name} ({num} chunks)")
+                st.rerun()
+
+    # --- Document List ---
+    st.markdown("---")
+    st.markdown("### 📂 Uploaded Documents")
+
+    if docs:
+        # Group by company
+        grouped = defaultdict(list)
+        for d in docs:
+            grouped[d["company"]].append(d)
+
+        for company, company_docs in grouped.items():
+            st.markdown(f"**🏢 {company}**")
+            for doc in company_docs:
+                col1, col2 = st.columns([4, 1])
+                with col1:
+                    st.caption(f"📄 {doc['source']}")
+                with col2:
+                    # Delete button with popover
+                    with st.popover("🗑️", use_container_width=True):
+                        st.caption(f"Delete '{doc['source']}'?")
+                        if st.button("Yes", key=f"del_{doc['company']}_{doc['source']}"):
+                            engine.delete_document(doc["company"], doc["source"])
+                            st.success("Deleted!")
+                            st.rerun()
+        # Delete All
+        st.markdown("---")
+        with st.popover("🗑️ Delete All", use_container_width=True):
+            st.caption("⚠️ Permanently delete ALL documents?")
+            if st.button("✅ Yes, Delete All", key="del_all"):
+                for d in docs:
+                    engine.delete_document(d["company"], d["source"])
+                st.success("All deleted!")
+                st.rerun()
     else:
-        agent_names = list(chat["answers"].keys())
-        tabs = st.tabs([f"🤖 {name}" for name in agent_names])
-        for tab, name in zip(tabs, agent_names):
-            with tab:
-                color = AGENT_COLORS.get(name, "#d4a656")
-                st.markdown(
-                    f'<span class="agent-badge" style="background:{color}22;color:{color};">{name}</span>'
-                    f'<div class="agent-answer">{chat["answers"][name]}</div>',
-                    unsafe_allow_html=True,
-                )
+        st.info("No documents uploaded.")
 
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown("---")
 
-    if chat.get("citations"):
-        chips = "".join(
-            f'<span style="background:#1a1f2e;border:1px solid #2e3652;border-radius:20px;'
-            f'padding:5px 12px;margin:3px 6px 0 0;display:inline-block;font-size:0.82rem;color:#c7cede;">'
-            f'🏢 <b style="color:#d4a656;">{c["company"]}</b> → 📄 {c["source"]}</span>'
-            for c in chat["citations"]
+    # --- Settings ---
+    st.markdown("### ⚙️ Settings")
+    all_companies = engine.get_all_companies()
+    selected_company = st.selectbox(
+        "🏢 Company Filter",
+        options=["All Companies"] + all_companies,
+        index=0,
+    )
+    active_company = None if selected_company == "All Companies" else selected_company
+
+    answer_mode = st.radio(
+        "🤖 Answer Mode",
+        options=["Single (Fastest)", "Matching", "Compare All"],
+        index=0,
+        help="Single: AI picks best agent. Matching: keyword match. Compare: all agents answer.",
+    )
+
+    st.markdown("---")
+    if st.button("🗑️ Clear Chat", use_container_width=True):
+        st.session_state.chat_history = []
+        st.rerun()
+
+    st.caption(f"🔍 {config.EMBEDDING_MODEL}")
+
+# ---------------- MAIN CHAT AREA ----------------
+st.markdown('<div class="chat-container">', unsafe_allow_html=True)
+
+# Display chat history (chronological order)
+if not st.session_state.chat_history:
+    st.markdown("""
+    <div class="welcome-box">
+        <h2>👋 Welcome to AI Agentic RAG</h2>
+        <p>Upload your documents and start asking questions.</p>
+        <p style="font-size:0.9rem; color:#6e7681;">Powered by Google Gemini + RAG</p>
+    </div>
+    """, unsafe_allow_html=True)
+else:
+    for chat in st.session_state.chat_history:
+        # --- USER MESSAGE ---
+        st.markdown(f"""
+        <div class="user-message">
+            <div class="user-bubble">🧑 {chat['question']}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # --- AI RESPONSE ---
+        if chat["mode"] == "single":
+            agent = chat["agent"].capitalize() if chat["agent"] != "general" else "General"
+            color_class = f"badge-{agent.lower()}" if agent.lower() in ["general", "automation", "extraction", "analytics"] else "badge-general"
+            st.markdown(f"""
+            <div class="ai-message">
+                <div class="ai-avatar">🤖</div>
+                <div class="ai-bubble">
+                    <span class="agent-badge {color_class}">✦ {agent}</span>
+                    <div style="margin-top:4px;">{chat['answer']}</div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            # Multi-agent: show all answers
+            st.markdown(f"""
+            <div class="ai-message">
+                <div class="ai-avatar">🤖</div>
+                <div class="ai-bubble" style="width:100%;">
+            """, unsafe_allow_html=True)
+            for agent_name, answer in chat["answers"].items():
+                color_class = f"badge-{agent_name.lower()}" if agent_name.lower() in ["general", "automation", "extraction", "analytics"] else "badge-general"
+                st.markdown(f"""
+                    <span class="agent-badge {color_class}">✦ {agent_name}</span>
+                    <div style="margin-top:4px; margin-bottom:14px;">{answer}</div>
+                """, unsafe_allow_html=True)
+            st.markdown("</div></div>", unsafe_allow_html=True)
+
+        # --- CITATIONS & CONTEXT (Expandable) ---
+        if chat.get("citations"):
+            chips = "".join(
+                f'<span class="citation-chip">🏢 <strong>{c["company"]}</strong> → {c["source"]}</span>'
+                for c in chat["citations"]
+            )
+            st.markdown(f'<div style="margin: -8px 0 12px 52px;">{chips}</div>', unsafe_allow_html=True)
+
+        with st.expander("📚 View Retrieved Context", expanded=False):
+            st.text(chat.get("context", "No context."))
+
+st.markdown('</div>', unsafe_allow_html=True)
+
+# ---------------- FIXED INPUT AT BOTTOM ----------------
+st.markdown('<div class="chat-input-container">', unsafe_allow_html=True)
+
+with st.container():
+    col_input, col_btn = st.columns([6, 1])
+    with col_input:
+        question = st.text_input(
+            "Ask a question...",
+            placeholder="e.g. What are the leave policies?",
+            key="chat_input",
+            label_visibility="collapsed",
         )
-        st.markdown(
-            f'<div style="margin-top:8px;">{chips}</div>',
-            unsafe_allow_html=True,
-        )
+    with col_btn:
+        ask_clicked = st.button("➤ Send", type="primary", use_container_width=True)
 
-    with st.expander("📚 View retrieved context"):
-        st.text(chat["context"] or "No context found.")
-    st.markdown("<br>", unsafe_allow_html=True)#   t e s t  
- 
+st.markdown('</div>', unsafe_allow_html=True)
+
+# ---------------- LOGIC FOR ASKING ----------------
+if ask_clicked and question.strip():
+    with st.spinner("Thinking..."):
+        mode = answer_mode
+        if mode == "Single (Fastest)":
+            result = engine.ask(question, company=active_company)
+            st.session_state.chat_history.append({
+                "mode": "single",
+                "question": question,
+                "answer": result["answer"],
+                "agent": result["agent_used"],
+                "context": result["context_used"],
+                "citations": result.get("citations", []),
+            })
+        else:
+            run_all = (mode == "Compare All")
+            result = engine.ask_multi(question, run_all=run_all, company=active_company)
+            st.session_state.chat_history.append({
+                "mode": "multi",
+                "question": question,
+                "answers": result["answers"],
+                "context": result["context_used"],
+                "citations": result.get("citations", []),
+            })
+    st.rerun()
