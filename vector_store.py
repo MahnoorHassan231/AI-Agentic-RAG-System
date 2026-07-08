@@ -165,6 +165,91 @@ class VectorStore:
         return combined
 
     # ------------------------------------------------------------------
+    # NEW: Document Management (Delete & List)
+    # ------------------------------------------------------------------
+
+    def get_all_documents(self):
+        """
+        Returns all uploaded documents with company names.
+        """
+        if self.use_pinecone:
+            stats = self.index.describe_index_stats()
+            documents = []
+
+            for namespace in stats.get("namespaces", {}):
+                try:
+                    res = self.index.query(
+                        vector=[0] * self.embedder.get_sentence_embedding_dimension(),
+                        top_k=1000,
+                        namespace=namespace,
+                        include_metadata=True,
+                    )
+
+                    seen = set()
+
+                    for match in res.matches:
+                        meta = match.metadata or {}
+                        key = (meta.get("company"), meta.get("source"))
+
+                        if key not in seen:
+                            seen.add(key)
+                            documents.append({
+                                "company": meta.get("company"),
+                                "source": meta.get("source"),
+                            })
+
+                except:
+                    pass
+
+            return documents
+
+        else:
+            data = self.collection.get(include=["metadatas"])
+            seen = set()
+            documents = []
+
+            for meta in data["metadatas"]:
+                key = (meta["company"], meta["source"])
+                if key not in seen:
+                    seen.add(key)
+                    documents.append({
+                        "company": meta["company"],
+                        "source": meta["source"],
+                    })
+
+            return documents
+
+    def delete_document(self, company, source):
+        if self.use_pinecone:
+            namespace = company.lower().replace(" ", "_")
+            ids = []
+
+            res = self.index.query(
+                vector=[0] * self.embedder.get_sentence_embedding_dimension(),
+                top_k=1000,
+                namespace=namespace,
+                include_metadata=True,
+            )
+
+            for m in res.matches:
+                if m.metadata.get("source") == source:
+                    ids.append(m.id)
+
+            if ids:
+                self.index.delete(ids=ids, namespace=namespace)
+
+        else:
+            data = self.collection.get()
+            ids = []
+
+            for i, meta in enumerate(data["metadatas"]):
+                if meta["company"] == company and meta["source"] == source:
+                    ids.append(data["ids"][i])
+
+            if ids:
+                self.collection.delete(ids=ids)
+
+    # ------------------------------------------------------------------
     # Metadata helpers
     # ------------------------------------------------------------------
 

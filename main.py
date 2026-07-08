@@ -6,6 +6,7 @@ answers. All the real logic lives in RAGEngine (rag_engine.py).
 """
 
 import os
+from collections import defaultdict  # <-- Grouping ke liye
 import streamlit as st
 import config
 from rag_engine import RAGEngine
@@ -211,6 +212,58 @@ with st.sidebar:
                         f.write(file.getbuffer())
                     num_chunks = engine.ingest_pdf(save_path, company=company_name.strip())
                     st.success(f"{file.name} -> {num_chunks} chunks added under '{company_name.strip()}'")
+
+    # ==============================================================
+    # 🔥 UPDATED FEATURE: Grouped Document List + Confirmation Popups
+    # ==============================================================
+    st.divider()
+    st.header("📂 Uploaded Documents")
+
+    # Get list of documents from the engine
+    docs = engine.get_documents()
+
+    if docs:
+        # Group documents by Company
+        grouped_docs = defaultdict(list)
+        for doc in docs:
+            grouped_docs[doc["company"]].append(doc)
+
+        total = len(docs)
+        st.caption(f"Total: {total} document(s)")
+
+        # Show documents grouped by company
+        for company, company_docs in grouped_docs.items():
+            st.markdown(f"**🏢 {company}**")  # Company heading
+            for doc in company_docs:
+                col1, col2 = st.columns([4, 1])
+                with col1:
+                    st.write(f"📄 {doc['source']}")
+                with col2:
+                    # 🗑 Delete button with confirmation popover
+                    with st.popover("🗑", use_container_width=True):
+                        st.caption(f"Delete '{doc['source']}'?")
+                        if st.button(
+                            "✅ Yes, Delete",
+                            key=f"confirm_del_{doc['company']}_{doc['source']}",
+                        ):
+                            engine.delete_document(doc["company"], doc["source"])
+                            st.success(f"Deleted: {doc['source']}")
+                            st.rerun()
+
+        # "Delete All" button with confirmation popover
+        st.divider()
+        with st.popover("🗑️ Delete All Documents", use_container_width=True):
+            st.caption("⚠️ Permanently delete ALL uploaded documents?")
+            if st.button("✅ Yes, Delete All", key="confirm_del_all"):
+                for doc in docs:
+                    engine.delete_document(doc["company"], doc["source"])
+                st.success("All documents deleted!")
+                st.rerun()
+
+    else:
+        st.info("No documents uploaded yet.")
+
+    # ==============================================================
 
     st.divider()
     if engine.vector_store.has_documents():

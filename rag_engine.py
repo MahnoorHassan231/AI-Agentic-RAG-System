@@ -142,3 +142,13 @@ class RAGEngine:
             "context_used": context,
             "citations": citations,
         }
+
+    # ------------------------------------------------------------------
+    # NEW: Document Management (Delete & List)
+    # ------------------------------------------------------------------
+
+    def get_documents(self):
+        return self.vector_store.get_all_documents()
+
+    def delete_document(self, company, source):
+        self.vector_store.delete_document(company, source)
