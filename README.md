@@ -44,7 +44,9 @@ matching.
 
 ## Architecture
 
-![Architecture Diagram](architecture.png)
+<p align="center">
+  <img src="architecture.png" alt="Architecture Diagram" width="550">
+</p>
 
 ---
 
