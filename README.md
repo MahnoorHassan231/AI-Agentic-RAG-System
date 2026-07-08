@@ -6,6 +6,8 @@ relevant information from your documents and generates accurate, context-aware
 answers using Google's Gemini large language model — routed through specialized
 AI agents depending on the type of question asked.
 
+🔗 **Live App:** [Add your Streamlit Cloud link here once deployed]
+
 ---
 
 ## Overview
@@ -42,154 +44,7 @@ matching.
 
 ## Architecture
 
-```
-                          ┌─────────────────┐
-                          │   Streamlit UI    │
-                          └────────┬─────────┘
-                                   │
-                 ┌─────────────────┴─────────────────┐
-                 │                                     │
-          PDF Upload                              User Question
-                 │                                     │
-                 ▼                                     ▼
-     ┌──────────────────────┐              ┌───────────────────────┐
-     │   Document Loader      │              │   Question Embedding    │
-     │  (extract + chunk text)│              │  (SentenceTransformer)  │
-     └──────────┬────────────┘              └───────────┬────────────┘
-                │                                        │
-                ▼                                        ▼
-     ┌──────────────────────┐              ┌───────────────────────┐
-     │  SentenceTransformer   │              │   Similarity Search     │
-     │      (embeddings)       │─────────────▶│      (ChromaDB)         │
-     └──────────┬────────────┘              └───────────┬────────────┘
-                │                                        │
-                ▼                                        ▼
-     ┌──────────────────────┐              ┌───────────────────────┐
-     │       ChromaDB          │              │  Relevant Context +     │
-     │   (vector database)     │              │      Source PDF          │
-     └─────────────────────────┘              └───────────┬────────────┘
-                                                            │
-                                                            ▼
-                                               ┌───────────────────────┐
-                                               │      Agent Router       │
-                                               │ (Automation/Extraction/ │
-                                               │  Analytics/General)     │
-                                               └───────────┬────────────┘
-                                                            │
-                                                            ▼
-                                               ┌───────────────────────┐
-                                               │   Gemini 2.5 Flash      │
-                                               │   (answer generation)   │
-                                               └───────────┬────────────┘
-                                                            │
-                                                            ▼
-                                               ┌───────────────────────┐
-                                               │  Answer + Sources        │
-                                               │  → Streamlit UI          │
-                                               └───────────────────────┘
-```
-
----
-
-## Project Structure
-
-| File | Responsibility |
-|---|---|
-| `main.py` | Streamlit UI — file upload, question input, answer display |
-| `config.py` | Central configuration (API key, model name, folder paths) |
-| `document_loader.py` | Extracts text from PDFs and splits it into chunks |
-| `vector_store.py` | Generates embeddings and manages the ChromaDB vector database |
-| `gemini_client.py` | Handles all communication with the Gemini API |
-| `agents.py` | Defines the Automation, Extraction, and Analytics agents, plus the routing logic |
-| `rag_engine.py` | Orchestrates the full pipeline — connects every module together |
-| `requirements.txt` | Python dependencies |
-
----
-
-## How It Works
-
-1. **Upload** — The user uploads a PDF via the sidebar.
-2. **Chunking** — `document_loader.py` extracts the raw text and splits it into
-   ~500-character overlapping chunks.
-3. **Embedding** — Each chunk is converted into a numerical vector using the
-   `all-MiniLM-L6-v2` SentenceTransformer model.
-4. **Storage** — Vectors are stored in ChromaDB, along with metadata identifying
-   the source PDF.
-5. **Question** — The user asks a question, which is embedded the same way.
-6. **Retrieval** — ChromaDB performs a similarity search to find the most
-   relevant chunks, along with their source document.
-7. **Routing** — The router decides which agent should answer: Gemini itself
-   classifies the intent (in Single Agent mode), or keyword rules are used
-   (in Matching / Compare modes).
-8. **Generation** — The selected agent sends the retrieved context + question
-   to Gemini, which generates a grounded answer.
-9. **Display** — The answer, the agent used, and the source PDF are shown in
-   the UI.
-
----
-
-## Local Setup
-
-### Prerequisites
-- Python 3.10+
-- A free Gemini API key from [Google AI Studio](https://aistudio.google.com/apikey)
-
-### Installation
-
-```bash
-git clone https://github.com/MahnoorHassan231/AI-Agentic-RAG-System.git
-cd AI-Agentic-RAG-System
-pip install -r requirements.txt
-```
-
-### Configuration
-
-Create a `.env` file in the project root:
-
-```
-GEMINI_API_KEY=your_actual_api_key_here
-```
-
-### Run
-
-```bash
-streamlit run main.py
-```
-
-The app will open automatically at `http://localhost:8501`.
-
----
-
-## Deploying as a Live Website (Streamlit Community Cloud — Free)
-
-1. Push the project to a GitHub repository (already done for this project —
-   see [MahnoorHassan231/AI-Agentic-RAG-System](https://github.com/MahnoorHassan231/AI-Agentic-RAG-System)).
-2. Go to [share.streamlit.io](https://share.streamlit.io) and sign in with GitHub.
-3. Click **"Create app"**, select this repository, branch `main`, and set the
-   main file path to `main.py`.
-4. Open **Advanced settings → Secrets** and add:
-   ```
-   GEMINI_API_KEY = "your_actual_api_key_here"
-   ```
-5. Click **Deploy**. After a few minutes, the app will be live at a public URL
-   such as:
-   ```
-   https://ai-agentic-rag-system.streamlit.app
-   ```
-
-No server management is required — Streamlit Cloud handles hosting, and the
-app automatically redeploys whenever the GitHub repository is updated.
-
----
-
-## Example Questions to Try
-
-| Question | Agent Triggered |
-|---|---|
-| "How many annual leaves do employees get?" | Extraction |
-| "Summarize the leave policy trends" | Analytics |
-| "Generate a workflow for requesting remote work" | Automation |
-| "What is the office dress code?" | General (plain RAG) |
+![Architecture Diagram](architecture.png)
 
 ---
 
@@ -204,7 +59,18 @@ app automatically redeploys whenever the GitHub repository is updated.
 
 ---
 
-## One-Line Summary (for interviews)
+## Example Questions to Try
+
+| Question | Agent Triggered |
+|---|---|
+| "How many annual leaves do employees get?" | Extraction |
+| "Summarize the leave policy trends" | Analytics |
+| "Generate a workflow for requesting remote work" | Automation |
+| "What is the office dress code?" | General (plain RAG) |
+
+---
+
+## One-Line Summary
 
 > This project implements Retrieval-Augmented Generation (RAG): user questions
 > are first matched against a vector database of document embeddings to
