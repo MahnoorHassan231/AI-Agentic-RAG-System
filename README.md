@@ -232,42 +232,6 @@ Users can search:
 
 ---
 
-# 📸 Screenshots
-
-## Home Page
-
-> Add screenshot here
-
-```
-screenshots/home.png
-```
-
-## Upload Documents
-
-> Add screenshot here
-
-```
-screenshots/upload.png
-```
-
-## Ask Questions
-
-> Add screenshot here
-
-```
-screenshots/chat.png
-```
-
-## Multi-Agent Comparison
-
-> Add screenshot here
-
-```
-screenshots/compare.png
-```
-
----
-
 # 🔮 Future Improvements
 
 - Hybrid Search (BM25 + Vector Search)
