@@ -4,8 +4,14 @@ An intelligent **Multi-Agent Retrieval-Augmented Generation (RAG)** system built
 
 This project allows users to upload PDF documents, retrieve relevant information using semantic search, and generate accurate AI-powered answers using multiple specialized AI agents.
 
+
 ---
 
+## 🚀 Live Demo
+
+**🔗 Try the App:**  
+https://ai-agentic-rag-system-caivs8j9bpu6jj3g7wbxfl.streamlit.app/
+---
 ## 📌 Features
 
 - 📄 Upload and process PDF documents
